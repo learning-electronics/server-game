@@ -9,6 +9,8 @@ const Socketio = require("socket.io")(Http, {
 
 var connections = [];
 
+var users = [];
+
 var chat = {
     "Room1" : [],
     "Room2" : [],
@@ -18,7 +20,7 @@ var chat = {
 Socketio.on("connection", socket => {
     // When a new socket connects its pushed to the connections array
     connections.push(socket.id);
-     
+
     Socketio.emit("socket_id", socket.id);
 
     // sends all the socket connections
@@ -28,12 +30,13 @@ Socketio.on("connection", socket => {
     socket.on("disconnect", () => {
         connections.splice(connections.indexOf(socket.id), 1);
         console.log(connections.toString());
+        users.splice(users[socket.id],1);
         Socketio.emit("connections", connections);
     });
     
     // store chat messages
     socket.on("send_message", (data, room_id) => {
-        chat[room_id].push({'src': socket.id , 'data': data});
+        chat[room_id].push({'src': users[socket.id] , 'data': data});
         Socketio.emit("chat", chat[room_id]);
         console.log(chat);
     });
@@ -44,6 +47,11 @@ Socketio.on("connection", socket => {
         console.log(chat[room_id]);
     });
 
+    //tells the name of the user that connected
+    socket.on("nname",username =>{
+        users[socket.id]=username;
+    });
+    
 });
 
 
