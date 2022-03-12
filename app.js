@@ -36,15 +36,18 @@ Socketio.on("connection", socket => {
     
     // store chat messages
     socket.on("send_message", (data, room_id) => {
+        socket.join(room_id);
         chat[room_id].push({'src': users[socket.id] , 'data': data});
-        Socketio.emit("chat", chat[room_id]);
+        Socketio.to(room_id).emit("chat", chat[room_id]);
         console.log(chat);
     });
     
     //load chat messages when enters
     socket.on("change_room", room_id => {
-        Socketio.emit("chat", chat[room_id]);
+        socket.join(room_id);
+        Socketio.to(socket.id).emit("chat", chat[room_id]);
         console.log(chat[room_id]);
+        console.log(room_id);
     });
 
     //tells the name of the user that connected
