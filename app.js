@@ -11,13 +11,13 @@ var connections = [];
 
 var users = [];
 
-var rooms = ["Room1", "Room2", "Room3"];
+var rooms = [];
 
-var chat = {
-    "Room1" : [],
-    "Room2" : [],
-    "Room3" : [],
-};
+var chat = {};
+
+var rooms_idx = {};
+
+var rooms_started = {};
 
 // Questions just for testing purposes
 var questions = [
@@ -26,18 +26,6 @@ var questions = [
     {id:3, question: "Question3", options: ["a", "b", "c", "d"], answer: "c"},
     {id:4, question: "Question4", options: ["a", "b", "c", "d"], answer: "d"}
 ];
-
-var rooms_idx = {
-    "Room1" : Math.floor(Math.random() * questions.length),
-    "Room2" : Math.floor(Math.random() * questions.length),
-    "Room3" : Math.floor(Math.random() * questions.length),
-};
-
-var rooms_started = {
-    "Room1" : {state : false, counter : 10}, 
-    "Room2" : {state : false, counter : 10},
-    "Room3" : {state : false, counter : 10}
-}
 
 var last_room = null;
 
@@ -76,8 +64,17 @@ Socketio.on("connection", socket => {
         Socketio.to(room_id).emit("chat", chat[room_id]);
         console.log(chat);
     });
+    socket.on("createRoom",room_id=>{
+        rooms.push(room_id);
+        chat[room_id]=[];
+        var idx= Math.floor(Math.random()* questions.length);
+        rooms_idx[room_id]=idx;
+        rooms_started[room_id]={state:false, counter:10};
+
+    });
     //load chat messages when enters
     socket.on("change_room", room_id => {
+        
         socket.leave(last_room);
         last_room = room_id;
         socket.join(room_id);
