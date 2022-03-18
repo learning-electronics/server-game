@@ -33,7 +33,12 @@ var rooms_idx = {
     "Room3" : Math.floor(Math.random() * questions.length),
 };
 
-var counter = 11;   // countdown timer value
+var rooms_started = {
+    "Room1" : {state : false, counter : 10}, 
+    "Room2" : {state : false, counter : 10},
+    "Room3" : {state : false, counter : 10}
+}
+
 var last_room = null;
 
 Socketio.on("connection", socket => {
@@ -77,25 +82,27 @@ Socketio.on("connection", socket => {
         last_room = room_id;
         socket.join(room_id);
         Socketio.to(socket.id).emit("chat", chat[room_id]);
-        Socketio.to(socket.id).emit("question_change_room", questions[rooms_idx[room_id]]); 
+        Socketio.to(socket.id).emit("question_change_room", questions[rooms_idx[room_id]]);  
+        if(rooms.includes(room_id)) {
+            Socketio.to(socket.id).emit("game_started", rooms_started[room_id]["state"], rooms_started[room_id]["counter"]); 
+        }
     });
     
     // starts the game
     socket.on("start_game", (room_id) => {
+        rooms_started[room_id]["state"] = true;
+        Socketio.to(room_id).emit("game_started", true); 
         setInterval(function() {
-            console.log(counter);
-            counter--;
-            if(counter >= 0) {
-                Socketio.to(room_id).emit("counter", counter);
-            } else if(counter == -1) {
-                console.log("Showing result!");
-                // show the result of the answer
+            rooms_started[room_id]["counter"] = rooms_started[room_id]["counter"] - 1; 
+            console.log(rooms_started[room_id]["counter"]);
+            if(rooms_started[room_id]["counter"] >= 0) {
+                Socketio.to(room_id).emit("counter", rooms_started[room_id]["counter"]);
+            } else if(rooms_started[room_id]["counter"] == -1) {
                 Socketio.to(room_id).emit("show_result", true);
-            } else if(counter == -3) {
-                console.log("Reseting!");
-        
+            }
+            else if(rooms_started[room_id]["counter"] == -3) {
                 Socketio.to(room_id).emit("show_result", false);
-        
+
                 // generate another random question for each room
                 rooms.forEach(element => { 
                     rooms_idx[element] = Math.floor(Math.random() * questions.length);
@@ -104,10 +111,36 @@ Socketio.on("connection", socket => {
                 rooms.forEach(element => {
                     Socketio.to(element).emit("server_get_question", questions[rooms_idx[element]]);
                 });
-                console.log(rooms_idx);
-                counter = 11; 
-            } 
+                rooms_started[room_id]["counter"] = 11;
+            }
         }, 1000);
+
+        //setInterval(function() {
+        //    console.log(counter);
+        //    counter--;
+        //    if(counter >= 0) {
+        //        Socketio.to(room_id).emit("counter", counter);
+        //    } else if(counter == -1) {
+        //        console.log("Showing result!");
+        //        // show the result of the answer
+        //        Socketio.to(room_id).emit("show_result", true);
+        //    } else if(counter == -3) {
+        //        console.log("Reseting!");
+        //
+        //        Socketio.to(room_id).emit("show_result", false);
+        //
+        //        // generate another random question for each room
+        //        rooms.forEach(element => { 
+        //            rooms_idx[element] = Math.floor(Math.random() * questions.length);
+        //        });
+        //        // send the new question for each room 
+        //        rooms.forEach(element => {
+        //            Socketio.to(element).emit("server_get_question", questions[rooms_idx[element]]);
+        //        });
+        //        console.log(rooms_idx);
+        //        counter = 11; 
+        //    } 
+        //}, 1000);
     });
 
     //tells the name of the user that connected
