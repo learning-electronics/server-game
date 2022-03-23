@@ -67,11 +67,13 @@ Socketio.on("connection", socket => {
         Socketio.to(room_id).emit("chat", chat[room_id]);
         console.log(chat);
     });
-     
-    socket.on("createRoom", socket => {
-	    console.log(rooms);
+    
+    // adds the new room to the respective data structures on the server and tells all clients to load the list of rooms
+    socket.on("createRoom", name => { 
+	    console.log(name);
+        console.log(rooms);
         var tmp = rooms.length;
-        rooms.push("Room" + tmp);
+        rooms.push(name.name);
 	    console.log(rooms);
 	    chat[rooms[rooms.length - 1]] = [];
 	    var idx = Math.floor(Math.random()* questions.length);
@@ -119,33 +121,6 @@ Socketio.on("connection", socket => {
                 rooms_started[room_id]["counter"] = 11;
             }
         }, 1000);
-
-        //setInterval(function() {
-        //    console.log(counter);
-        //    counter--;
-        //    if(counter >= 0) {
-        //        Socketio.to(room_id).emit("counter", counter);
-        //    } else if(counter == -1) {
-        //        console.log("Showing result!");
-        //        // show the result of the answer
-        //        Socketio.to(room_id).emit("show_result", true);
-        //    } else if(counter == -3) {
-        //        console.log("Reseting!");
-        //
-        //        Socketio.to(room_id).emit("show_result", false);
-        //
-        //        // generate another random question for each room
-        //        rooms.forEach(element => { 
-        //            rooms_idx[element] = Math.floor(Math.random() * questions.length);
-        //        });
-        //        // send the new question for each room 
-        //        rooms.forEach(element => {
-        //            Socketio.to(element).emit("server_get_question", questions[rooms_idx[element]]);
-        //        });
-        //        console.log(rooms_idx);
-        //        counter = 11; 
-        //    } 
-        //}, 1000);
     });
 
     //tells the name of the user that connected
