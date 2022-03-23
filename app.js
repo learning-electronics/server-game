@@ -11,7 +11,7 @@ var connections = [];
 
 var users = [];
 
-var rooms = [];
+var rooms = ["None"];
 
 var chat = {};
 
@@ -39,6 +39,10 @@ Socketio.on("connection", socket => {
     // sends all the socket connections
     Socketio.emit("connections", connections);
     
+    // load rooms when connects
+    console.log(rooms);
+	Socketio.emit("loadRooms", rooms);
+
     // when a socket disconnects its removed from the connections array
     socket.on("disconnect", () => {
         connections.splice(connections.indexOf(socket.id), 1);
@@ -54,7 +58,6 @@ Socketio.on("connection", socket => {
         for(let i = 0; i < rooms.length; i++) {
             Socketio.to(rooms[i]).emit("server_get_question", questions[rooms[i]]);
         }
-        console.log(rooms_idx)
     });    
     
     // store chat messages
@@ -64,14 +67,19 @@ Socketio.on("connection", socket => {
         Socketio.to(room_id).emit("chat", chat[room_id]);
         console.log(chat);
     });
-    socket.on("createRoom",room_id=>{
-        rooms.push(room_id);
-        chat[room_id]=[];
-        var idx= Math.floor(Math.random()* questions.length);
-        rooms_idx[room_id]=idx;
-        rooms_started[room_id]={state:false, counter:10};
-
+     
+    socket.on("createRoom", socket => {
+	    console.log(rooms);
+        var tmp = rooms.length;
+        rooms.push("Room" + tmp);
+	    console.log(rooms);
+	    chat[rooms[rooms.length - 1]] = [];
+	    var idx = Math.floor(Math.random()* questions.length);
+	    rooms_idx[rooms[rooms.length - 1]] = idx;
+	    rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
+	    Socketio.emit("loadRooms", rooms);
     });
+
     //load chat messages when enters
     socket.on("change_room", room_id => {
         
