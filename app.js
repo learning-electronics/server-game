@@ -41,14 +41,6 @@ var rooms_idx = {};
 
 var rooms_started = {};
 
-// Questions just for testing purposes
-var questions = [
-    {id:1, question: "Question1", options: ["a", "b", "c", "d"], answer: "a"},
-    {id:2, question: "Question2", options: ["a", "b", "c", "d"], answer: "b"},
-    {id:3, question: "Question3", options: ["a", "b", "c", "d"], answer: "c"},
-    {id:4, question: "Question4", options: ["a", "b", "c", "d"], answer: "d"}
-];
-
 var last_room = null;
 
 Socketio.on("connection", socket => {
@@ -76,9 +68,7 @@ Socketio.on("connection", socket => {
 
     // Send random question to clients in room
     socket.on("client_get_question", (room_id) => {
-        // Socketio.to(room_id).emit("server_get_question", questions[room_id]);
         for(let i = 0; i < rooms.length; i++) {
-            // Socketio.to(rooms[i]).emit("server_get_question", questions[rooms[i]]);
             Socketio.to(rooms[i]).emit("server_get_question", exercises[rooms[i]]);
         }
     });    
