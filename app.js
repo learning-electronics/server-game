@@ -29,8 +29,6 @@ http.get("http://127.0.0.1:8000/exercise/api/exercises", (resp) => {
     });
 });
 
-
-
 var connections = [];
 
 var users = [];
@@ -67,8 +65,6 @@ Socketio.on("connection", socket => {
     console.log(rooms);
 	Socketio.emit("loadRooms", rooms);
     
-    // TESTING THE CALL TO REST API TO GET ALL EXERCISES
-
     // when a socket disconnects its removed from the connections array
     socket.on("disconnect", () => {
         connections.splice(connections.indexOf(socket.id), 1);
@@ -82,7 +78,8 @@ Socketio.on("connection", socket => {
     socket.on("client_get_question", (room_id) => {
         // Socketio.to(room_id).emit("server_get_question", questions[room_id]);
         for(let i = 0; i < rooms.length; i++) {
-            Socketio.to(rooms[i]).emit("server_get_question", questions[rooms[i]]);
+            // Socketio.to(rooms[i]).emit("server_get_question", questions[rooms[i]]);
+            Socketio.to(rooms[i]).emit("server_get_question", exercises[rooms[i]]);
         }
     });    
     
@@ -102,7 +99,7 @@ Socketio.on("connection", socket => {
         rooms.push(name.name);
 	    console.log(rooms);
 	    chat[rooms[rooms.length - 1]] = [];
-	    var idx = Math.floor(Math.random()* questions.length);
+	    var idx = Math.floor(Math.random()* exercises.length);
 	    rooms_idx[rooms[rooms.length - 1]] = idx;
 	    rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
 	    Socketio.emit("loadRooms", rooms);
@@ -115,7 +112,8 @@ Socketio.on("connection", socket => {
         last_room = room_id;
         socket.join(room_id);
         Socketio.to(socket.id).emit("chat", chat[room_id]);
-        Socketio.to(socket.id).emit("question_change_room", questions[rooms_idx[room_id]]);  
+        Socketio.to(socket.id).emit("question_change_room", exercises[rooms_idx[room_id]]);  
+        console.log(exercises[rooms_idx[room_id]]); 
         if(rooms.includes(room_id)) {
             Socketio.to(socket.id).emit("game_started", rooms_started[room_id]["state"], rooms_started[room_id]["counter"]); 
         }
@@ -138,11 +136,14 @@ Socketio.on("connection", socket => {
 
                 // generate another random question for each room
                 rooms.forEach(element => { 
-                    rooms_idx[element] = Math.floor(Math.random() * questions.length);
+                    rooms_idx[element] = Math.floor(Math.random() * exercises.length);
                 });
+                
+                console.log(rooms_idx);
+                
                 // send the new question for each room 
                 rooms.forEach(element => {
-                    Socketio.to(element).emit("server_get_question", questions[rooms_idx[element]]);
+                    Socketio.to(element).emit("server_get_question", exercises[rooms_idx[element]]);
                 });
                 rooms_started[room_id]["counter"] = 11;
             }
