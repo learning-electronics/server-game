@@ -7,6 +7,30 @@ const Socketio = require("socket.io")(Http, {
     }
 });
 
+// {teacher: int, theme:[int], question:string, ans1:string, ans2:string, ans3:string, correct:string, unit:string, resol:string, date:string, img:string}
+var exercises = [];
+
+// gets exercises from the rest api
+const http = require("http");
+
+http.get("http://127.0.0.1:8000/exercise/api/exercises", (resp) => {
+    let data = "";
+
+    resp.on("data", (chunk) => {
+        data += chunk;
+    });
+    resp.on("end", () => {
+        
+        for(let i = 0; i < JSON.parse(data).length; i++) {
+            exercises.push(JSON.parse(data)[i]);
+        }
+
+        console.log(exercises);
+    });
+});
+
+
+
 var connections = [];
 
 var users = [];
@@ -30,7 +54,7 @@ var questions = [
 var last_room = null;
 
 Socketio.on("connection", socket => {
-
+    
     // When a new socket connects its pushed to the connections array
     connections.push(socket.id);
 
@@ -42,6 +66,8 @@ Socketio.on("connection", socket => {
     // load rooms when connects
     console.log(rooms);
 	Socketio.emit("loadRooms", rooms);
+    
+    // TESTING THE CALL TO REST API TO GET ALL EXERCISES
 
     // when a socket disconnects its removed from the connections array
     socket.on("disconnect", () => {
