@@ -82,18 +82,22 @@ Socketio.on("connection", socket => {
     });
     
     // adds the new room to the respective data structures on the server and tells all clients to load the list of rooms
-    socket.on("createRoom", name => { 
-	    console.log(name);
-        console.log(rooms);
-        var tmp = rooms.length;
-        rooms.push(name.name);
-	    console.log(rooms);
-	    chat[rooms[rooms.length - 1]] = [];
-	    var idx = Math.floor(Math.random()* exercises.length);
-	    rooms_idx[rooms[rooms.length - 1]] = idx;
-	    rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
-	    Socketio.emit("loadRooms", rooms);
-    });
+    socket.on("createRoom", (socket_id, name) => { 
+        // if room with that name already exists send an error message to the client
+        if(rooms.includes(name.name)) {
+            console.log("room already exists"); 
+            Socketio.to(socket_id).emit("room_already_exists", name.name);   
+        } else {
+            var tmp = rooms.length;
+            rooms.push(name.name);
+	        console.log(rooms);
+	        chat[rooms[rooms.length - 1]] = [];
+	        var idx = Math.floor(Math.random()* exercises.length);
+	        rooms_idx[rooms[rooms.length - 1]] = idx;
+	        rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
+	        Socketio.emit("loadRooms", rooms);
+        }
+    }); 
 
     //load chat messages when enters
     socket.on("change_room", room_id => {
