@@ -10,24 +10,7 @@ const Socketio = require("socket.io")(Http, {
 // {teacher: int, theme:[int], question:string, ans1:string, ans2:string, ans3:string, correct:string, unit:string, resol:string, date:string, img:string}
 var exercises = [];
 
-// gets exercises from the rest api
-const http = require("http");
-
-http.get("http://127.0.0.1:8000/exercise/api/exercises", (resp) => {
-    let data = "";
-
-    resp.on("data", (chunk) => {
-        data += chunk;
-    });
-    resp.on("end", () => {
-        
-        for(let i = 0; i < JSON.parse(data).length; i++) {
-            exercises.push(JSON.parse(data)[i]);
-        }
-
-        console.log(exercises);
-    });
-});
+loadExercises();
 
 var connections = [];
 
@@ -83,20 +66,15 @@ Socketio.on("connection", socket => {
     
     // adds the new room to the respective data structures on the server and tells all clients to load the list of rooms
     socket.on("createRoom", (socket_id, name) => { 
-        // if room with that name already exists send an error message to the client
-        if(rooms.includes(name.name)) {
-            console.log("room already exists"); 
-            Socketio.to(socket_id).emit("room_already_exists", name.name);   
-        } else {
-            var tmp = rooms.length;
-            rooms.push(name.name);
-	        console.log(rooms);
-	        chat[rooms[rooms.length - 1]] = [];
-	        var idx = Math.floor(Math.random()* exercises.length);
-	        rooms_idx[rooms[rooms.length - 1]] = idx;
-	        rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
-	        Socketio.emit("loadRooms", rooms);
-        }
+        loadExercises();
+        var tmp = rooms.length;
+        rooms.push(name.name);
+	    console.log(rooms);
+	    chat[rooms[rooms.length - 1]] = [];
+	    var idx = Math.floor(Math.random()* exercises.length);
+	    rooms_idx[rooms[rooms.length - 1]] = idx;
+	    rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
+	    Socketio.emit("loadRooms", rooms); 
     }); 
 
     //load chat messages when enters
@@ -155,3 +133,23 @@ Http.listen(3000, () => {
     console.log("Listening at port 3000!");
 });
    
+// gets exercises from the rest api
+function loadExercises() {
+    const http = require("http");
+    
+    http.get("http://127.0.0.1:8000/exercise/api/exercises", (resp) => {
+        let data = "";
+    
+        resp.on("data", (chunk) => {
+            data += chunk;
+        });
+        resp.on("end", () => {
+            
+            for(let i = 0; i < JSON.parse(data).length; i++) {
+                exercises.push(JSON.parse(data)[i]);
+            }
+    
+            console.log(exercises);
+        });
+    });
+}
