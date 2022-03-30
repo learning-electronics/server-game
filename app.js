@@ -26,6 +26,8 @@ var rooms_started = {};
 
 var last_room = null;
 
+var rooms_settings = {};
+
 Socketio.on("connection", socket => {
     
     // When a new socket connects its pushed to the connections array
@@ -65,16 +67,20 @@ Socketio.on("connection", socket => {
     });
     
     // adds the new room to the respective data structures on the server and tells all clients to load the list of rooms
-    socket.on("createRoom", (socket_id, name) => { 
+    socket.on("createRoom", (socket_id, data) => { 
         loadExercises();
+        console.log(data);
         var tmp = rooms.length;
-        rooms.push(name.name);
+        rooms.push(data.name);
 	    console.log(rooms);
 	    chat[rooms[rooms.length - 1]] = [];
 	    var idx = Math.floor(Math.random()* exercises.length);
 	    rooms_idx[rooms[rooms.length - 1]] = idx;
 	    rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
-	    Socketio.emit("loadRooms", rooms); 
+	    rooms_settings[rooms[rooms.length - 1]] = {numExercises : data.numExercises, exercisesLeft : data.numExercises};
+        console.log("settings");
+        console.log(rooms_settings);
+        Socketio.emit("loadRooms", rooms); 
     }); 
 
     //load chat messages when enters
@@ -94,14 +100,15 @@ Socketio.on("connection", socket => {
     // starts the game
     socket.on("start_game", (room_id) => {
         rooms_started[room_id]["state"] = true;
-        Socketio.to(room_id).emit("game_started", true); 
-        setInterval(function() {
+        roomTimer = setInterval(function() {
             rooms_started[room_id]["counter"] = rooms_started[room_id]["counter"] - 1; 
             console.log(rooms_started[room_id]["counter"]);
             if(rooms_started[room_id]["counter"] >= 0) {
                 Socketio.to(room_id).emit("counter", rooms_started[room_id]["counter"]);
             } else if(rooms_started[room_id]["counter"] == -1) {
                 Socketio.to(room_id).emit("show_result", true);
+                rooms_settings[room_id]["exercisesLeft"]--;
+                console.log(rooms_settings);
             }
             else if(rooms_started[room_id]["counter"] == -3) {
                 Socketio.to(room_id).emit("show_result", false);
@@ -120,6 +127,7 @@ Socketio.on("connection", socket => {
                 rooms_started[room_id]["counter"] = 11;
             }
         }, 1000);
+        Socketio.to(room_id).emit("game_started", true);  
     });
 
     //tells the name of the user that connected
@@ -149,7 +157,6 @@ function loadExercises() {
                 exercises.push(JSON.parse(data)[i]);
             }
     
-            console.log(exercises);
         });
     });
 }
