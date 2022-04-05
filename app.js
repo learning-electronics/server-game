@@ -101,6 +101,7 @@ Socketio.on("connection", socket => {
     socket.on("start_game", (room_id) => {
         rooms_started[room_id]["state"] = true;
         roomTimer = setInterval(function() {
+            checkExercisesLeft(room_id);
             rooms_started[room_id]["counter"] = rooms_started[room_id]["counter"] - 1; 
             console.log(rooms_started[room_id]["counter"]);
             if(rooms_started[room_id]["counter"] >= 0) {
@@ -140,7 +141,16 @@ Socketio.on("connection", socket => {
 Http.listen(3000, () => {
     console.log("Listening at port 3000!");
 });
-   
+
+// checks if there is exercises left on that room.
+// if there aren't the game stop on that room.
+function checkExercisesLeft(room_id) {
+    if(rooms_settings[room_id]["exercisesLeft"] <= 0) {
+        clearInterval(roomTimer);
+    }
+    Socketio.to(room_id).emit("game_over");
+}
+
 // gets exercises from the rest api
 function loadExercises() {
     const http = require("http");
