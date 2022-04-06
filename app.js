@@ -28,6 +28,8 @@ var last_room = null;
 
 var rooms_settings = {};
 
+var rooms_users = {};   // {room_name : [socketids]}
+
 Socketio.on("connection", socket => {
     
     // When a new socket connects its pushed to the connections array
@@ -84,14 +86,17 @@ Socketio.on("connection", socket => {
     }); 
 
     //load chat messages when enters
-    socket.on("change_room", room_id => {
-        
+    socket.on("change_room", room_id => { 
         socket.leave(last_room);
         last_room = room_id;
         socket.join(room_id);
         Socketio.to(socket.id).emit("chat", chat[room_id]);
         Socketio.to(socket.id).emit("question_change_room", exercises[rooms_idx[room_id]]);  
-        console.log(exercises[rooms_idx[room_id]]); 
+        rooms.forEach( room_name => {
+            if(Socketio.sockets.adapter.rooms.get(room_name) != null) {
+                rooms_users[room_name] = Array.from(Socketio.sockets.adapter.rooms.get(room_name));
+            }
+        });
         if(rooms.includes(room_id)) {
             Socketio.to(socket.id).emit("game_started", rooms_started[room_id]["state"], rooms_started[room_id]["counter"]); 
         }
