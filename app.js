@@ -71,10 +71,8 @@ Socketio.on("connection", socket => {
     // adds the new room to the respective data structures on the server and tells all clients to load the list of rooms
     socket.on("createRoom", (socket_id, data) => { 
         loadExercises();
-        console.log(data);
         var tmp = rooms.length;
         rooms.push(data.name);
-	    console.log(rooms);
 	    chat[rooms[rooms.length - 1]] = [];
 	    var idx = Math.floor(Math.random()* exercises.length);
 	    rooms_idx[rooms[rooms.length - 1]] = idx;
@@ -88,6 +86,11 @@ Socketio.on("connection", socket => {
     //load chat messages when enters
     socket.on("change_room", room_id => { 
         socket.leave(last_room);
+
+        if(last_room != null) {
+            rooms_users[last_room].splice(rooms_users[last_room].indexOf(socket.id), 1);
+        } 
+            
         last_room = room_id;
         socket.join(room_id);
         Socketio.to(socket.id).emit("chat", chat[room_id]);
@@ -100,6 +103,7 @@ Socketio.on("connection", socket => {
         if(rooms.includes(room_id)) {
             Socketio.to(socket.id).emit("game_started", rooms_started[room_id]["state"], rooms_started[room_id]["counter"]); 
         }
+        console.log(rooms_users);
     });
     
     // starts the game
