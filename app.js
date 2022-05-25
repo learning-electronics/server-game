@@ -28,10 +28,13 @@ var last_room = null;
 
 var rooms_settings = {};
 
-var rooms_users = {};   // {room_name : [socketids]}
+var rooms_users = {"None":[]};   // {room_name : [socketids]}
 
 Socketio.on("connection", socket => {
     
+
+    rooms_users["None"].push(socket.id);
+
     // When a new socket connects its pushed to the connections array
     connections.push(socket.id);
 
@@ -51,6 +54,7 @@ Socketio.on("connection", socket => {
         users.splice(users[socket.id],1);
         Socketio.emit("connections", connections);
         socket.leave(last_room);
+        rooms_users["None"].splice(rooms_users["None"].indexOf(socket.id), 1);
     });
 
     // Send random question to clients in room
@@ -84,19 +88,27 @@ Socketio.on("connection", socket => {
     }); 
 
     //load chat messages when enters
-    socket.on("change_room", room_id => { 
+    socket.on("change_room", (room_id, last_room) => {
+        // change socket id room
         socket.leave(last_room);
 
-        if(last_room != null) {
-            rooms_users[last_room].splice(rooms_users[last_room].indexOf(socket.id), 1);
-        } 
-            
-        last_room = room_id;
+        if(last_room != "") {
+                rooms_users[last_room].splice(rooms_users[last_room].indexOf(socket.id), 1);
+        }
+        
         socket.join(room_id);
+
         Socketio.to(socket.id).emit("chat", chat[room_id]);
         Socketio.to(socket.id).emit("question_change_room", exercises[rooms_idx[room_id]]);  
         rooms.forEach( room_name => {
             if(Socketio.sockets.adapter.rooms.get(room_name) != null) {
+                var tmp_array_users = Array.from(Socketio.sockets.adapter.rooms.get(room_name));
+                var tmp_dicts_users = {};
+                for(index in tmp_array_users) {
+                    tmp_dicts_users[tmp_array_users[index]] = false; 
+                }
+                console.log(tmp_dicts_users);
+
                 rooms_users[room_name] = Array.from(Socketio.sockets.adapter.rooms.get(room_name));
             }
         });
