@@ -178,9 +178,9 @@ Socketio.on("connection", socket => {
         Socketio.to(room_id).emit("players_ready",p_ready);
         
 
-        if(rooms.includes(room_id)) {
-            Socketio.to(socket.id).emit("game_started", rooms_started[room_id]["state"], rooms_started[room_id]["counter"]); 
-        }
+        // if(rooms.includes(room_id)) {
+        //     Socketio.to(socket.id).emit("game_started", rooms_started[room_id]["state"], rooms_started[room_id]["counter"]); 
+        // }
         console.log(rooms_users);
     });
     
@@ -203,6 +203,18 @@ Socketio.on("connection", socket => {
         Socketio.to(room_id).emit("players_ready", p_ready);
     });
 
+    //playerNotReady
+    socket.on("playerNotReady", (room_id) => {
+        rooms_users[room_id][socket.id] = false;
+        var p_ready = 0;
+        for(var key in rooms_users[room_id]) {
+            if(rooms_users[room_id][key] == true) {
+                p_ready++;
+            }
+        }
+        Socketio.to(room_id).emit("players_ready",p_ready);
+    });
+
     // starts the game
     socket.on("playerReady", (room_id) => {
 
@@ -223,7 +235,7 @@ Socketio.on("connection", socket => {
         
         //count elemnts in dict
         if(p_ready == Object.keys(rooms_users[room_id]).length) {
-            
+            Socketio.to(socket.id).emit("question_change_room", exercises[rooms_idx[room_id]]);  
             rooms_started[room_id]["state"] = true;
             roomTimer = setInterval(function() {
                 checkExercisesLeft(room_id);
@@ -274,8 +286,9 @@ Http.listen(3000, () => {
 function checkExercisesLeft(room_id) {
     if(rooms_settings[room_id]["exercisesLeft"] <= 0) {
         clearInterval(roomTimer);
+        Socketio.to(room_id).emit("game_over");
     }
-    Socketio.to(room_id).emit("game_over");
+    
 }
 
 // gets exercises from the rest api
