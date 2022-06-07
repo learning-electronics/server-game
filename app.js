@@ -32,13 +32,30 @@ var rooms_settings = {};
 
 var rooms_users = {"None":{}};   // {room_name : [socketids]}
 
-//var p_ready=0;
+var room_timer = {};
 
-//var players=0;
+var room_points = {};
+
+var rooms_ended = [];
+
+function removeRoomVariables(room_id) {
+    console.log("destroying room");
+    console.log(room_id);
+    // handles the end of the game
+    rooms_started[room_id] = { state: false, counter: 0 };
+    rooms.splice(rooms.indexOf(room_id), 1);
+    Socketio.emit("loadRooms", rooms);
+    delete rooms_idx[room_id];
+    delete rooms_settings[room_id];
+    delete rooms_users[room_id];
+    delete chat[room_id];
+    rooms_ended.splice(rooms_ended.indexOf(room_id), 1);
+    console.log("Successfully destroyed room: " + room_id);
+}
+
 
 Socketio.on("connection", socket => {
     
-
     rooms_users["None"][socket.id] = false;
 
     // When a new socket connects its pushed to the connections array
@@ -88,7 +105,6 @@ Socketio.on("connection", socket => {
             Socketio.to(room_id).emit("totalPlayers", 0);
         }
 
-        // rooms_users["None"].splice(rooms_users["None"].indexOf(socket.id), 1);
     });
 
     // Send random question to clients in room
@@ -128,9 +144,7 @@ Socketio.on("connection", socket => {
 
         if(last_room_tmp != "") {
             delete rooms_users[last_room_tmp][socket.id];
-            // rooms_users[last_room].splice(rooms_users[last_room].indexOf(socket.id), 1);
         }
-        
 
         socket.join(room_id);
 
@@ -146,7 +160,6 @@ Socketio.on("connection", socket => {
                 console.log(tmp_dicts_users);
 
                 rooms_users[room_name] = tmp_dicts_users;
-                // Array.from(Socketio.sockets.adapter.rooms.get(room_name));
             }
         });
 
@@ -156,6 +169,7 @@ Socketio.on("connection", socket => {
                 l_ready++;
             }
         }
+
         Socketio.to(last_room_tmp).emit("players_ready",l_ready);
 
         if (rooms_users[room_id]!=null) {
@@ -176,12 +190,6 @@ Socketio.on("connection", socket => {
         }
 
         Socketio.to(room_id).emit("players_ready",p_ready);
-        
-
-        // if(rooms.includes(room_id)) {
-        //     Socketio.to(socket.id).emit("game_started", rooms_started[room_id]["state"], rooms_started[room_id]["counter"]); 
-        // }
-        console.log(rooms_users);
     });
     
     //send total players in room
@@ -191,7 +199,6 @@ Socketio.on("connection", socket => {
     });
 
     //send players ready in room
-    
     socket.on("client_get_players_ready", (room_id) => {
         p_ready = 0;
         for(var key in rooms_users[room_id]) {
@@ -225,19 +232,13 @@ Socketio.on("connection", socket => {
                 p_ready++;
             }
         }
-        Socketio.to(room_id).emit("players_ready",p_ready);
-
-      
-        // console.log(tmp);
-        // console.log(typeof(tmp));
-        // ready_val=(tmp / Object.keys(rooms_users[room_id]).length) * 100
-        
+        Socketio.to(room_id).emit("players_ready",p_ready);        
         
         //count elemnts in dict
         if(p_ready == Object.keys(rooms_users[room_id]).length) {
             Socketio.to(socket.id).emit("question_change_room", exercises[rooms_idx[room_id]]);  
             rooms_started[room_id]["state"] = true;
-            roomTimer = setInterval(function() {
+            tmp_roomTimer = setInterval(function() {
                 checkExercisesLeft(room_id);
                 rooms_started[room_id]["counter"] = rooms_started[room_id]["counter"] - 1; 
                 console.log(rooms_started[room_id]["counter"]);
@@ -265,6 +266,8 @@ Socketio.on("connection", socket => {
                     rooms_started[room_id]["counter"] = 11;
                 }
             }, 1000);
+            room_timer[room_id] = tmp_roomTimer;
+
             Socketio.to(room_id).emit("game_started", true);
         }
           
@@ -273,7 +276,17 @@ Socketio.on("connection", socket => {
     //tells the name of the user that connected
     socket.on("nname",username => {
         users[socket.id]=username;
-    });  
+    });
+
+    // sends the total points on that room associated to each username
+    socket.on("client_total_points", (socket_id, room_id, correct_answers) => {
+        room_points[room_id][users[socket_id]] = correct_answers;
+        if(Object.keys(room_points[room_id]).length == Object.keys(rooms_users[room_id]).length) {
+            Socketio.to(room_id).emit("game_results", room_points[room_id]);
+            removeRoomVariables(room_id);
+        }
+
+    });
 
 });
 
@@ -285,7 +298,9 @@ Http.listen(3000, () => {
 // if there aren't the game stop on that room.
 function checkExercisesLeft(room_id) {
     if(rooms_settings[room_id]["exercisesLeft"] <= 0) {
-        clearInterval(roomTimer);
+        clearInterval(room_timer[room_id]);
+        rooms_ended.push(room_id);
+        room_points[room_id] = {};
         Socketio.to(room_id).emit("game_over");
     }
     
@@ -310,3 +325,5 @@ function loadExercises() {
         });
     });
 }
+
+
