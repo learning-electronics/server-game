@@ -132,16 +132,15 @@ Socketio.on("connection", socket => {
 	    rooms_idx[rooms[rooms.length - 1]] = idx;
 	    rooms_started[rooms[rooms.length - 1]] = {state: false, counter: 10};
 	    rooms_settings[rooms[rooms.length - 1]] = {numExercises : data.numExercises, exercisesLeft : data.numExercises};
-
+        
         Socketio.emit("loadRooms", rooms); 
     }); 
 
     //load chat messages when enters
     socket.on("change_room", (room_id, last_room_tmp) => {
-
-        // change socket id room
+        
         socket.leave(last_room_tmp);
-
+        
         if(last_room_tmp != "") {
             delete rooms_users[last_room_tmp][socket.id];
         }
@@ -189,6 +188,33 @@ Socketio.on("connection", socket => {
             }
         }
 
+        console.log("rooms users");
+        console.log(rooms_users);
+        console.log("last room");
+        console.log(last_room_tmp);
+
+        if(Object.keys(rooms_users).includes(last_room_tmp)) {
+            console.log(Object.keys(rooms_users[last_room_tmp]));    
+            if(Object.keys(rooms_users[last_room_tmp]).length == 0) {
+                removeRoomVariables(last_room_tmp);
+            }    
+        }
+
+        // // change socket id room
+        // if(Object.keys(rooms_users).includes(last_room_tmp)) {
+        //     console.log(Object.keys(rooms_users[last_room_tmp]));
+        //     console.log(last_room_tmp);
+        //     console.log(rooms_users);
+            
+        //     // room destroyed when all clients exit the room
+        //     console.log(Object.keys(rooms_users[last_room_tmp]).length);
+        //     if(Object.keys(rooms_users[last_room_tmp]).length == 0) {
+        //         removeRoomVariables(last_room_tmp);
+        //     }
+        // } else {
+        //     console.log("ainda nao");
+        // }
+
         Socketio.to(room_id).emit("players_ready",p_ready);
     });
     
@@ -206,7 +232,6 @@ Socketio.on("connection", socket => {
                 p_ready++;
             }
         }
-        console.log(p_ready);
         Socketio.to(room_id).emit("players_ready", p_ready);
     });
 
@@ -283,7 +308,6 @@ Socketio.on("connection", socket => {
         room_points[room_id][users[socket_id]] = correct_answers;
         if(Object.keys(room_points[room_id]).length == Object.keys(rooms_users[room_id]).length) {
             Socketio.to(room_id).emit("game_results", room_points[room_id]);
-            removeRoomVariables(room_id);
         }
 
     });
